@@ -83,6 +83,7 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [rateLimited, setRateLimited] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -161,6 +162,7 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
           setPerformances(data.setlist ?? [])
           setNextStartPage(data.nextStartPage ?? 2)
           setHasMore(data.hasMore ?? false)
+          if (data.rateLimited) setRateLimited(true)
         }
       } catch {
         setError('Failed to load performance history from Setlist.fm')
@@ -270,10 +272,16 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
         {!timesHeard && <div className="mb-6" />}
 
         {/* Performance history */}
+        {rateLimited && (
+          <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-3">
+            <span>⏱</span>
+            <span>Setlist.fm is a bit slow right now — results may be incomplete. Try loading more in a moment.</span>
+          </div>
+        )}
         {error ? (
           <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-            <div className="text-sm text-red-500 mb-1">{error}</div>
-            <div className="text-xs text-gray-400">Personal stats above are from your logged shows</div>
+            <div className="text-sm text-gray-500 mb-1">Couldn't load performance history right now</div>
+            <div className="text-xs text-gray-400">Setlist.fm may be busy — try again in a moment. Your personal stats above are unaffected.</div>
           </div>
         ) : performances.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">

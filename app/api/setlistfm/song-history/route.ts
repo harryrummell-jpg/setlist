@@ -45,10 +45,14 @@ export async function GET(request: Request) {
       })
 
       if (res.status === 429) {
-        return NextResponse.json(
-          { error: 'Too many requests — please wait a moment and try again' },
-          { status: 429 }
-        )
+        // Return whatever we've collected so far rather than failing completely
+        return NextResponse.json({
+          setlist: matchingShows,
+          nextStartPage: currentPage,
+          hasMore: hasMorePages,
+          totalArtistShows,
+          rateLimited: true,
+        })
       }
 
       if (res.status === 404) break
