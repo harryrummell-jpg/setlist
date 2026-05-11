@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
+  const mbid = searchParams.get('mbid')
   const artist = searchParams.get('artist')
-  const date = searchParams.get('date')
+  const page = searchParams.get('page') ?? '1'
 
-  if (!artist || !date) {
-    return NextResponse.json({ error: 'Artist and date are required' }, { status: 400 })
+  if (!mbid && !artist) {
+    return NextResponse.json({ error: 'mbid or artist is required' }, { status: 400 })
   }
 
   const apiKey = process.env.SETLISTFM_API_KEY
@@ -14,9 +15,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'API key not found' }, { status: 500 })
   }
 
-  const [year, month, day] = date.split('-')
-  const formattedDate = `${day}-${month}-${year}`
-  const url = `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artist)}&date=${formattedDate}`
+  const url = mbid
+    ? `https://api.setlist.fm/rest/1.0/artist/${mbid}/setlists?p=${page}`
+    : `https://api.setlist.fm/rest/1.0/search/setlists?artistName=${encodeURIComponent(artist!)}&p=${page}`
 
   try {
     const res = await fetch(url, {
@@ -29,17 +30,17 @@ export async function GET(request: Request) {
     const text = await res.text()
 
     if (!res.ok) {
-      return NextResponse.json({ 
-        error: `Setlist.fm error: ${res.status} — ${text}` 
-      }, { status: res.status })
+      const message = res.status === 429
+        ? 'Setlist.fm rate limit reached — wait a moment and try again'
+        : `Setlist.fm error: ${res.status}`
+      return NextResponse.json({ error: message }, { status: res.status })
     }
 
-    const data = JSON.parse(text)
-    return NextResponse.json(data)
+    return NextResponse.json(JSON.parse(text))
 
   } catch (err: any) {
-    return NextResponse.json({ 
-      error: `Failed to reach Setlist.fm: ${err.message}` 
+    return NextResponse.json({
+      error: `Failed to reach Setlist.fm: ${err.message}`
     }, { status: 500 })
   }
 }

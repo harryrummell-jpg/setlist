@@ -1,18 +1,13 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 export default function ShowDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params)
-    const router = useRouter()
+  const router = useRouter()
   const [show, setShow] = useState<any>(null)
   const [songs, setSongs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,6 +83,7 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
           show<span className="text-indigo-500">book</span>
         </div>
         <div className="flex items-center gap-6">
+          <Link href="/shows/add" className="text-sm text-gray-500 hover:text-gray-900">Search</Link>
           <Link href="/shows" className="text-sm text-gray-500 hover:text-gray-900">My shows</Link>
           <Link href="/friends" className="text-sm text-gray-500 hover:text-gray-900">Friends</Link>
           <Link href="/profile" className="text-sm text-gray-500 hover:text-gray-900">Profile</Link>
@@ -159,10 +155,14 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Source</div>
               <div className="text-xs text-gray-400">
-                Setlist data from Setlist.fm
-                <div className="text-xs text-gray-400">
-                Setlist data from Setlist.fm
-              </div>
+                Setlist data from{' '}
+                {setlistfmUrl ? (
+                  <a href={setlistfmUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">
+                    Setlist.fm
+                  </a>
+                ) : (
+                  'Setlist.fm'
+                )}
               </div>
             </div>
           </div>

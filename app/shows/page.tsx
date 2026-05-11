@@ -1,14 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 export default function ShowsPage() {
   const router = useRouter()
@@ -73,17 +68,13 @@ export default function ShowsPage() {
           show<span className="text-indigo-500">book</span>
         </div>
         <div className="flex items-center gap-6">
+          <Link href="/shows/add" className="text-sm text-gray-500 hover:text-gray-900">Search</Link>
           <Link href="/shows" className="text-sm text-indigo-500 font-medium border-b-2 border-indigo-500 pb-0.5">My shows</Link>
           <Link href="/friends" className="text-sm text-gray-500 hover:text-gray-900">Friends</Link>
           <Link href="/profile" className="text-sm text-gray-500 hover:text-gray-900">Profile</Link>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/shows/add" className="bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
-            + Log show
-          </Link>
-          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-medium text-indigo-600">
-            {profile?.display_name?.charAt(0).toUpperCase()}
-          </div>
+        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-medium text-indigo-600">
+          {profile?.display_name?.charAt(0).toUpperCase()}
         </div>
       </nav>
 
@@ -119,7 +110,7 @@ export default function ShowsPage() {
               const date = new Date(show.show_date + 'T00:00:00')
               const month = date.toLocaleString('default', { month: 'short' })
               const day = date.getDate()
-              const sets = [...new Set(show.setlist_songs?.map((s: any) => s.set_number))]
+              const sets = Array.from(new Set<string>((show.setlist_songs ?? []).map((s: any) => s.set_number)))
 
               return (
                 <Link key={show.id} href={`/shows/${show.id}`}>
