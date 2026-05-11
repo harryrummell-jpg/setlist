@@ -70,8 +70,7 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
 
   // Global history from Setlist.fm
   const [performances, setPerformances] = useState<SetlistShow[]>([])
-  const [totalCount, setTotalCount] = useState<number | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [nextStartPage, setNextStartPage] = useState(2)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [resolvedMbid, setResolvedMbid] = useState<string | null>(null)
@@ -144,24 +143,24 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
       setLoggedShows(idMap)
       setResolvedMbid(artistMbid)
 
-      // 4. Fetch global performance history from Setlist.fm, using MBID when available
+      // 4. Fetch global performance history from Setlist.fm
+      //    We use /artist/{mbid}/setlists and filter client-side because
+      //    Setlist.fm's songName search parameter doesn't actually filter results.
       const historyParams = artistMbid
         ? `mbid=${encodeURIComponent(artistMbid)}`
         : `artist=${encodeURIComponent(artistName)}`
 
       try {
         const res = await fetch(
-          `/api/setlistfm/song-history?${historyParams}&song=${encodeURIComponent(songName)}&page=1`
+          `/api/setlistfm/song-history?${historyParams}&song=${encodeURIComponent(songName)}&startPage=1`
         )
         const data = await res.json()
         if (data.error) {
           setError(data.error)
         } else {
-          const results: SetlistShow[] = data.setlist ?? []
-          setPerformances(results)
-          setTotalCount(data.total ?? null)
-          const perPage = data.itemsPerPage ?? 20
-          setHasMore(perPage < (data.total ?? 0))
+          setPerformances(data.setlist ?? [])
+          setNextStartPage(data.nextStartPage ?? 2)
+          setHasMore(data.hasMore ?? false)
         }
       } catch {
         setError('Failed to load performance history from Setlist.fm')
@@ -174,20 +173,18 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
 
   const loadMore = async () => {
     setLoadingMore(true)
-    const nextPage = currentPage + 1
     const params = resolvedMbid
       ? `mbid=${encodeURIComponent(resolvedMbid)}`
       : `artist=${encodeURIComponent(artistName)}`
     try {
       const res = await fetch(
-        `/api/setlistfm/song-history?${params}&song=${encodeURIComponent(songName)}&page=${nextPage}`
+        `/api/setlistfm/song-history?${params}&song=${encodeURIComponent(songName)}&startPage=${nextStartPage}`
       )
       const data = await res.json()
       if (!data.error) {
         setPerformances(prev => [...prev, ...(data.setlist ?? [])])
-        const perPage = data.itemsPerPage ?? 20
-        setHasMore(nextPage * perPage < (data.total ?? 0))
-        setCurrentPage(nextPage)
+        setNextStartPage(data.nextStartPage ?? nextStartPage)
+        setHasMore(data.hasMore ?? false)
       }
     } catch {
       // silently fail on load more
@@ -241,17 +238,15 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 mb-3">
-          {totalCount !== null && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">All-time plays</div>
-              <div className="text-2xl font-medium text-gray-900">{totalCount.toLocaleString()}</div>
-              <div className="text-xs text-gray-400 mt-0.5">by {artistName}</div>
-            </div>
-          )}
           <div className="bg-white border border-gray-200 rounded-xl p-4">
             <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">You've heard it</div>
             <div className="text-2xl font-medium text-gray-900">{timesHeard}×</div>
-            <div className="text-xs text-gray-400 mt-0.5">{timesHeard === 0 ? 'not yet logged' : timesHeard === 1 ? 'in your history' : 'in your history'}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{timesHeard === 0 ? 'not in logged shows' : 'in your history'}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Performances found</div>
+            <div className="text-2xl font-medium text-gray-900">{performances.length}</div>
+            <div className="text-xs text-gray-400 mt-0.5">in recent shows</div>
           </div>
         </div>
 
@@ -290,11 +285,7 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                 Performance history
               </div>
-              {totalCount !== null && (
-                <div className="text-xs text-gray-400">
-                  showing {performances.length} of {totalCount.toLocaleString()}
-                </div>
-              )}
+              <div className="text-xs text-gray-400">most recent first</div>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -374,9 +365,7 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
                 disabled={loadingMore}
                 className="w-full mt-3 py-2.5 text-sm text-indigo-500 hover:text-indigo-600 disabled:opacity-50 border border-gray-200 rounded-xl bg-white hover:border-gray-300 transition-colors"
               >
-                {loadingMore
-                  ? 'Loading...'
-                  : `Load more — ${performances.length} of ${totalCount?.toLocaleString()} shown`}
+                {loadingMore ? 'Searching more shows...' : 'Load more'}
               </button>
             )}
           </>
