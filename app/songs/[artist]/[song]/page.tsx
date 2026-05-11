@@ -74,6 +74,7 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [resolvedMbid, setResolvedMbid] = useState<string | null>(null)
 
   // User's personal data (accurate regardless of pagination)
   const [loggedShows, setLoggedShows] = useState<Record<string, string>>({}) // setlistfm_id → local show id
@@ -92,18 +93,35 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
       // 1. Get all of the user's shows for this artist that have a Setlist.fm ID
       const { data: userShowsData } = await supabase
         .from('shows')
-        .select('id, setlistfm_id, show_date')
+        .select('id, setlistfm_id, show_date, artist_mbid')
         .eq('user_id', user.id)
         .eq('artist', artistName)
         .not('setlistfm_id', 'is', null)
 
       const idMap: Record<string, string> = {}
+      let artistMbid: string | null = null
+
       if (userShowsData && userShowsData.length > 0) {
         for (const s of userShowsData) {
           if (s.setlistfm_id) idMap[s.setlistfm_id] = s.id
+          if (s.artist_mbid && !artistMbid) artistMbid = s.artist_mbid
         }
 
-        // 2. Find which of those shows contain this song
+        // 2. If no stored MBID (pre-migration shows), look it up from a setlist
+        if (!artistMbid) {
+          const showWithSfmId = userShowsData.find(s => s.setlistfm_id)
+          if (showWithSfmId?.setlistfm_id) {
+            try {
+              const sfmRes = await fetch(`/api/setlistfm/setlist/${showWithSfmId.setlistfm_id}`)
+              const sfmData = await sfmRes.json()
+              artistMbid = sfmData?.artist?.mbid ?? null
+            } catch {
+              // If this fails, fall back to name-based search
+            }
+          }
+        }
+
+        // 3. Find which of those shows contain this song
         const showIds = userShowsData.map(s => s.id)
         const { data: songRows } = await supabase
           .from('setlist_songs')
@@ -124,11 +142,16 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
       }
 
       setLoggedShows(idMap)
+      setResolvedMbid(artistMbid)
 
-      // 3. Fetch global performance history from Setlist.fm
+      // 4. Fetch global performance history from Setlist.fm, using MBID when available
+      const historyParams = artistMbid
+        ? `mbid=${encodeURIComponent(artistMbid)}`
+        : `artist=${encodeURIComponent(artistName)}`
+
       try {
         const res = await fetch(
-          `/api/setlistfm/song-history?artist=${encodeURIComponent(artistName)}&song=${encodeURIComponent(songName)}&page=1`
+          `/api/setlistfm/song-history?${historyParams}&song=${encodeURIComponent(songName)}&page=1`
         )
         const data = await res.json()
         if (data.error) {
@@ -152,9 +175,12 @@ export default function SongPage({ params }: { params: Promise<{ artist: string;
   const loadMore = async () => {
     setLoadingMore(true)
     const nextPage = currentPage + 1
+    const params = resolvedMbid
+      ? `mbid=${encodeURIComponent(resolvedMbid)}`
+      : `artist=${encodeURIComponent(artistName)}`
     try {
       const res = await fetch(
-        `/api/setlistfm/song-history?artist=${encodeURIComponent(artistName)}&song=${encodeURIComponent(songName)}&page=${nextPage}`
+        `/api/setlistfm/song-history?${params}&song=${encodeURIComponent(songName)}&page=${nextPage}`
       )
       const data = await res.json()
       if (!data.error) {

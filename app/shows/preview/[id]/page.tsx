@@ -17,7 +17,7 @@ interface SetlistSet {
 
 interface Show {
   id: string
-  artist: { name: string }
+  artist: { name: string; mbid?: string }
   eventDate: string
   venue?: {
     name: string
@@ -90,6 +90,7 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
       .insert({
         user_id: user.id,
         artist: show.artist?.name,
+        artist_mbid: show.artist?.mbid ?? null,
         venue: show.venue?.name ?? 'Unknown Venue',
         city,
         show_date: `${year}-${month}-${day}`,
