@@ -95,7 +95,12 @@ export default function ShowDetailPage({ params }: { params: Promise<{ id: strin
         <Link href="/shows" className="text-sm text-indigo-500">My shows</Link>
 
         <div className="bg-white border border-gray-200 rounded-xl p-5 mt-4 mb-4">
-          <h1 className="text-2xl font-medium text-gray-900">{show.artist}</h1>
+          <Link
+            href={`/artists/${encodeURIComponent(show.artist)}`}
+            className="text-2xl font-medium text-gray-900 hover:text-indigo-500 transition-colors"
+          >
+            {show.artist}
+          </Link>
           <div className="text-sm text-gray-500 mt-1">{formattedDate}</div>
           <div className="text-sm text-gray-500">{show.venue} — {show.city}</div>
           {show.notes && (

@@ -113,27 +113,35 @@ export default function ShowsPage() {
               const sets = Array.from(new Set<string>((show.setlist_songs ?? []).map((s: any) => s.set_number)))
 
               return (
-                <Link key={show.id} href={`/shows/${show.id}`}>
-                  <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-4 hover:border-gray-300 transition-colors cursor-pointer">
-                    <div className="text-center min-w-10">
-                      <div className="text-xs text-gray-500 uppercase">{month}</div>
-                      <div className="text-xl font-medium text-gray-900 leading-tight">{day}</div>
-                    </div>
-                    <div className="w-px bg-gray-100 self-stretch" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">{show.artist}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{show.venue} — {show.city}</div>
-                      {sets.length > 0 && (
-                        <div className="flex gap-1.5 mt-1.5">
-                          {sets.map(set => (
-                            <span key={set} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{set}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-gray-400 text-lg">›</div>
+                <div
+                  key={show.id}
+                  className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-4 hover:border-gray-300 transition-colors cursor-pointer"
+                  onClick={() => router.push(`/shows/${show.id}`)}
+                >
+                  <div className="text-center min-w-10">
+                    <div className="text-xs text-gray-500 uppercase">{month}</div>
+                    <div className="text-xl font-medium text-gray-900 leading-tight">{day}</div>
                   </div>
-                </Link>
+                  <div className="w-px bg-gray-100 self-stretch" />
+                  <div className="flex-1">
+                    <Link
+                      href={`/artists/${encodeURIComponent(show.artist)}`}
+                      onClick={e => e.stopPropagation()}
+                      className="text-sm font-medium text-gray-900 hover:text-indigo-500 transition-colors"
+                    >
+                      {show.artist}
+                    </Link>
+                    <div className="text-xs text-gray-500 mt-0.5">{show.venue} — {show.city}</div>
+                    {sets.length > 0 && (
+                      <div className="flex gap-1.5 mt-1.5">
+                        {sets.map(set => (
+                          <span key={set} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{set}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-gray-400 text-lg">›</div>
+                </div>
               )
             })}
           </div>
